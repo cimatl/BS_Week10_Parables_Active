@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Active Learning App v2 — Reading the Parables of Jesus</title>
+<style>
+:root {
+  --bg:#f5efe2; --panel:#fffaf0; --ink:#2c2924; --muted:#6e6256;
+  --brown:#6b4c1e; --gold:#b8860b; --line:#d8c89f; --soft:#fff7df;
+  --green:#486b50; --red:#8a3b2f;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:Georgia,'Times New Roman',serif;background:linear-gradient(135deg,#f5efe2,#ead8ad);color:var(--ink);line-height:1.62}
+header{position:sticky;top:0;z-index:20;background:rgba(255,250,240,.97);border-bottom:1px solid var(--line);padding:14px 20px;display:flex;justify-content:space-between;gap:12px;align-items:center;backdrop-filter:blur(8px)}
+h1,h2,h3{font-family:Garamond,Georgia,serif;line-height:1.2}
+h1{margin:0;font-size:clamp(23px,4vw,36px)}
+h2{font-size:clamp(26px,4vw,38px);color:var(--brown);margin:.2rem 0 .5rem}
+h3{font-size:23px;color:var(--brown);margin:.2rem 0}
+button{border:1px solid var(--line);background:#fffdf8;color:var(--brown);padding:10px 14px;border-radius:14px;cursor:pointer;font-weight:700}
+button:hover,button.active{background:var(--brown);color:white}
+.shell{max-width:1320px;margin:0 auto;display:grid;grid-template-columns:310px 1fr;gap:22px;padding:22px}
+aside{position:sticky;top:84px;height:calc(100vh - 106px);overflow:auto;background:rgba(255,250,240,.94);border:1px solid var(--line);border-radius:24px;padding:16px;box-shadow:0 10px 28px rgba(70,50,20,.08)}
+main{background:rgba(255,250,240,.94);border:1px solid var(--line);border-radius:28px;padding:28px;box-shadow:0 12px 32px rgba(70,50,20,.1)}
+.kicker{letter-spacing:.12em;text-transform:uppercase;color:var(--brown);font-size:13px;font-weight:700}
+.small{color:var(--muted);font-size:14px}
+.panel,.text-section{background:#fffdf8;border:1px solid var(--line);border-radius:24px;padding:20px;margin:16px 0}
+.grid,.overview-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+.gap-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-top:12px}
+.gap-card{background:#fffaf0;border:1px solid var(--line);border-radius:16px;padding:14px}
+label{display:block;font-weight:700;color:var(--brown);margin:10px 0}
+label span{display:block;font-weight:400;color:var(--muted);font-size:14px;margin-top:3px}
+input,select,textarea{width:100%;padding:12px;border:1px solid var(--line);border-radius:14px;background:#fffaf0;font-family:inherit;font-size:16px;color:var(--ink)}
+textarea{min-height:130px;resize:vertical}
+.text-btn{display:block;width:100%;text-align:left;margin:7px 0;border-radius:16px}
+.text-btn small{display:block;color:inherit;opacity:.75;font-weight:400;margin-top:3px}
+.text-section{display:none;animation:fade .22s ease}
+.text-section.current{display:block}
+@keyframes fade{from{opacity:.4;transform:translateY(4px)}to{opacity:1;transform:none}}
+.question-card{background:var(--soft);border:1px solid var(--line);border-radius:20px;padding:16px;margin:16px 0}
+.guide{background:#f5f1e9;border:1px solid var(--line);border-radius:18px;padding:14px 16px;margin:18px 0}
+summary{cursor:pointer;font-weight:700;color:var(--brown)}
+.controls{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}
+.status{display:none;padding:14px 16px;border-radius:16px;margin-top:14px}
+.status.ok{display:block;background:#e7f1e8;color:var(--green);border:1px solid #a7c9ae}
+.status.bad{display:block;background:#f6e2df;color:var(--red);border:1px solid #d4aaa4}
+.progress{height:10px;background:#e6d5a9;border-radius:999px;overflow:hidden;margin-top:8px}
+.bar{height:100%;width:0;background:var(--gold);transition:.25s}
+.rubric-table{width:100%;border-collapse:collapse;margin-top:10px}
+.rubric-table th,.rubric-table td{border:1px solid var(--line);padding:9px;vertical-align:top}
+.rubric-table th{background:var(--brown);color:white}
+.ko{display:none}
+body.lang-ko .en{display:none!important}
+body.lang-ko .ko{display:initial}
+body.lang-ko p.ko, body.lang-ko div.ko, body.lang-ko section.ko, body.lang-ko ol.ko, body.lang-ko small.ko{display:block}
+body.lang-ko span.ko, body.lang-ko strong.ko{display:inline}
+@media(max-width:900px){.shell{grid-template-columns:1fr}aside{position:relative;top:0;height:auto}}
+@media print{header .actions,aside,.submit-panel{display:none}.shell{display:block;padding:0}main{box-shadow:none;border:none}.text-section{display:block;page-break-before:always}.ko{display:none}body.lang-ko .en{display:none!important}body.lang-ko .ko{display:block}}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1><span class="en">Reading the Parables of Jesus</span><span class="ko">예수님의 비유 읽기</span></h1>
+    <div class="small"><span class="en">Active Learning App v2 · Overview + 4 Gaps · EN/KO Toggle</span><span class="ko">Active Learning App v2 · 개요 + 4가지 간격 · 영어/한국어 전환</span></div>
+    <div class="progress"><div class="bar" id="bar"></div></div>
+  </div>
+  <div class="actions"><button onclick="toggleLang()">EN / KO</button><button onclick="window.print()"><span class="en">Print</span><span class="ko">인쇄</span></button></div>
+</header>
+
+<div class="shell">
+<aside>
+  <div class="kicker"><span class="en">Sections</span><span class="ko">섹션</span></div>
+  <button class="text-btn" onclick="showText(0)"><span class="en">Overview & Instructions</span><span class="ko">개요와 사용법</span><small class="en">4 gaps + workflow</small><small class="ko">4가지 간격 + 활동 흐름</small></button>
+<button class="text-btn" onclick="showText(1)"><span class="en">1. Luke 10:25–37</span><span class="ko">1. 누가복음 10:25–37</span><small class="en">The Good Samaritan</small><small class="ko">선한 사마리아인</small></button>
+<button class="text-btn" onclick="showText(2)"><span class="en">2. Luke 15:11–32</span><span class="ko">2. 누가복음 15:11–32</span><small class="en">The Two Sons</small><small class="ko">두 아들</small></button>
+<button class="text-btn" onclick="showText(3)"><span class="en">3. Luke 18:9–14</span><span class="ko">3. 누가복음 18:9–14</span><small class="en">The Pharisee and the Tax Collector</small><small class="ko">바리새인과 세리</small></button>
+<button class="text-btn" onclick="showText(4)"><span class="en">4. Matthew 20:1–16</span><span class="ko">4. 마태복음 20:1–16</span><small class="en">Workers in the Vineyard</small><small class="ko">포도원 품꾼</small></button>
+<button class="text-btn" onclick="showText(5)"><span class="en">5. Luke 16:1–13</span><span class="ko">5. 누가복음 16:1–13</span><small class="en">The Shrewd Manager</small><small class="ko">불의한 청지기</small></button>
+<button class="text-btn" onclick="showText(6)"><span class="en">6. Matthew 25:1–13</span><span class="ko">6. 마태복음 25:1–13</span><small class="en">The Ten Virgins</small><small class="ko">열 처녀</small></button>
+
+  <div class="controls">
+    <button onclick="prevText()">← <span class="en">Prev</span><span class="ko">이전</span></button>
+    <button onclick="nextText()"><span class="en">Next</span><span class="ko">다음</span> →</button>
+  </div>
+</aside>
+
+<main>
+  <section class="panel">
+    <div class="kicker"><span class="en">Group Information</span><span class="ko">그룹 정보</span></div>
+    <h2><span class="en">Active Learning Submission</span><span class="ko">Active Learning 제출</span></h2>
+    <p class="small"><span class="en">Complete one exegetical, one hermeneutical, and one integration answer for each of the six core parable texts.</span><span class="ko">여섯 개의 핵심 비유 본문마다 주해 답변 하나, 해석 답변 하나, 통합 답변 하나를 작성하십시오.</span></p>
+    <div class="grid">
+      <label><span class="en">Student Class *</span><span class="ko">수업 *</span>
+        <select id="studentClass">
+          <option value="">Choose class</option>
+          <option>UB7</option><option>UB8</option><option>UB9</option><option>BH</option>
+        </select>
+      </label>
+      <label><span class="en">Student ID *</span><span class="ko">학번 *</span>
+        <input id="studentId" placeholder="Representative student ID">
+      </label>
+      <label><span class="en">Student Name *</span><span class="ko">이름 *</span>
+        <input id="studentName" placeholder="Representative student name">
+      </label>
+      <label><span class="en">Group Name *</span><span class="ko">그룹 이름 *</span>
+        <input id="groupName" placeholder="e.g., Tuesday Group A">
+      </label>
+    </div>
+    <label><span class="en">Group Members</span><span class="ko">그룹 멤버</span>
+      <input id="members" placeholder="List group members">
+    </label>
+  </section>
+
+  
+<section id="text0" class="text-section">
+  <div class="text-header">
+    <div class="kicker"><span class="en">Start Here</span><span class="ko">여기서 시작</span></div>
+    <h2><span class="en">Overview: How to Use This Active Learning App</span><span class="ko">개요: Active Learning App 사용법</span></h2>
+  </div>
+
+  <div class="overview-grid">
+    <div class="question-card">
+      <h3><span class="en">Purpose</span><span class="ko">목적</span></h3>
+      <p class="en">This app is for in-class group work. Your group will study six core parable texts. For each text, you will answer one exegetical question, one hermeneutical question, and one integration question.</p>
+      <p class="ko">이 앱은 수업 중 그룹 활동을 위한 것입니다. 여러분의 그룹은 여섯 개의 핵심 비유 본문을 다룹니다. 각 본문마다 주해 질문 하나, 해석 질문 하나, 통합 질문 하나에 답합니다.</p>
+    </div>
+    <div class="question-card">
+      <h3><span class="en">Workflow</span><span class="ko">활동 흐름</span></h3>
+      <ol class="en">
+        <li>Fill in class and group information.</li>
+        <li>Move through the six core texts section by section.</li>
+        <li>Discuss before typing final answers.</li>
+        <li>Write concise answers in your own words.</li>
+        <li>Submit all six texts or download a backup.</li>
+      </ol>
+      <ol class="ko">
+        <li>수업과 그룹 정보를 입력합니다.</li>
+        <li>여섯 개의 핵심 본문을 섹션별로 진행합니다.</li>
+        <li>최종 답을 입력하기 전 먼저 토론합니다.</li>
+        <li>자신의 말로 간결하게 답을 작성합니다.</li>
+        <li>여섯 본문 전체를 제출하거나 백업 파일을 다운로드합니다.</li>
+      </ol>
+    </div>
+  </div>
+
+  <div class="question-card">
+    <h3><span class="en">The 4 Gaps to Watch</span><span class="ko">주의해야 할 4가지 간격</span></h3>
+    <p class="en">These gaps help your group avoid shallow answers. Use them as a diagnostic checklist while discussing each parable.</p>
+    <p class="ko">이 네 가지 간격은 얕은 답변을 피하도록 돕는 진단 체크리스트입니다. 각 비유를 토론할 때 사용하십시오.</p>
+    <div class="gap-grid">
+      <div class="gap-card">
+        <strong><span class="en">Gap 1 — Text-to-Reader Gap</span><span class="ko">간격 1 — 본문과 독자의 간격</span></strong>
+        <p class="en">Do not begin with “what this means to me.” First ask what the text meant and did in its original setting.</p>
+        <p class="ko">“나에게 무엇을 의미하는가?”에서 시작하지 마십시오. 먼저 본문이 원래 상황에서 무엇을 의미했고 어떤 일을 했는지 물으십시오.</p>
+      </div>
+      <div class="gap-card">
+        <strong><span class="en">Gap 2 — Ancient-to-Modern Gap</span><span class="ko">간격 2 — 고대와 현대의 간격</span></strong>
+        <p class="en">Identify what is culturally different: honor, shame, debt, purity, hospitality, labor, boundaries, and social status.</p>
+        <p class="ko">명예, 수치, 빚, 정결, 환대, 노동, 경계, 사회적 지위 등 문화적으로 다른 요소를 확인하십시오.</p>
+      </div>
+      <div class="gap-card">
+        <strong><span class="en">Gap 3 — Exegesis-to-Application Gap</span><span class="ko">간격 3 — 주해와 적용의 간격</span></strong>
+        <p class="en">Do not jump from text to moral lesson. Let the original audience, conflict, and reversal shape the application.</p>
+        <p class="ko">본문에서 곧바로 도덕 교훈으로 뛰어가지 마십시오. 원래 청중, 갈등, 전복이 적용을 형성하게 하십시오.</p>
+      </div>
+      <div class="gap-card">
+        <strong><span class="en">Gap 4 — Group-to-Presentation Gap</span><span class="ko">간격 4 — 그룹 토론과 발표의 간격</span></strong>
+        <p class="en">A good discussion is not enough. Your final answer must be clear enough to present in one minute.</p>
+        <p class="ko">좋은 토론만으로는 충분하지 않습니다. 최종 답변은 1분 안에 발표할 수 있을 만큼 분명해야 합니다.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="question-card">
+    <h3><span class="en">Answer Pattern</span><span class="ko">답변 패턴</span></h3>
+    <p class="en"><strong>Exegetical:</strong> Stay inside the text. <strong>Hermeneutical:</strong> Bridge to today. <strong>Integration:</strong> Write one sentence connecting the original meaning and faithful contemporary response.</p>
+    <p class="ko"><strong>주해:</strong> 본문 안에 머무르십시오. <strong>해석:</strong> 오늘의 상황으로 다리를 놓으십시오. <strong>통합:</strong> 본래 의미와 오늘의 신실한 응답을 연결하는 한 문장을 작성하십시오.</p>
+  </div>
+</section>
+
+<section id="text1" class="text-section">
+  <div class="text-header">
+    <div class="kicker"><span class="en">Tuesday Core Text 1</span><span class="ko">화요일 핵심 본문 1</span></div>
+    <h2><span class="en">Luke 10:25–37 — The Good Samaritan</span><span class="ko">누가복음 10:25–37 — 선한 사마리아인</span></h2>
+    <p><strong><span class="en">Focus:</span><span class="ko">초점:</span></strong> <span class="en">Neighbor-love and boundary reversal</span><span class="ko">이웃 사랑과 경계의 전복</span></p>
+  </div>
+
+  <div class="question-card">
+    <h3><span class="en">1. Exegetical Question</span><span class="ko">1. 주해 질문</span></h3>
+    <p><span class="en">What original question, audience, and social boundary does Jesus confront in this parable?</span><span class="ko">예수님은 이 비유에서 어떤 원래 질문, 청중, 사회적 경계를 대면하게 하십니까?</span></p>
+    <textarea id="exe1" placeholder="Stay inside the text: audience, setting, literary movement, reversal, and original force."></textarea>
+  </div>
+
+  <div class="question-card">
+    <h3><span class="en">2. Hermeneutical Question</span><span class="ko">2. 해석 질문</span></h3>
+    <p><span class="en">Where do modern communities still define “neighbor” narrowly, and who functions as the avoided outsider?</span><span class="ko">오늘의 공동체는 어디에서 여전히 ‘이웃’을 좁게 정의하며, 누가 피하고 싶은 외부자처럼 기능합니까?</span></p>
+    <textarea id="her1" placeholder="Bridge carefully to today without losing the original force."></textarea>
+  </div>
+
+  <div class="question-card">
+    <h3><span class="en">3. Integration Question</span><span class="ko">3. 통합 질문</span></h3>
+    <p><span class="en">Write one sentence connecting Jesus’ original confrontation of boundary-making with a faithful contemporary practice of costly compassion.</span><span class="ko">예수님이 경계 짓기를 대면하신 원래 의미와 오늘의 비용 있는 긍휼 실천을 연결하는 한 문장을 작성하십시오.</span></p>
+    <textarea id="int1" placeholder="Write one clear sentence connecting original meaning and contemporary response."></textarea>
+  </div>
+
+  <details class="guide">
+    <summary><span class="en">Instructor Model Integration Sentence</span><span class="ko">교수자용 통합 문장 예시</span></summary>
+    <p><span class="en">Jesus confronts the lawyer’s attempt to limit neighbor-love by making a despised outsider the model of mercy, calling communities today to cross boundaries with costly compassion.</span><span class="ko">예수님은 이웃 사랑의 범위를 제한하려는 율법교사의 시도를 멸시받던 외부자를 자비의 모델로 삼아 뒤집으시며, 오늘의 공동체가 비용 있는 긍휼로 경계를 넘도록 부르신다.</span></p>
+  </details>
+</section>
+
+<section id="text2" class="text-section">
+  <div class="text-header">
+    <div class="kicker"><span class="en">Tuesday Core Text 2</span><span class="ko">화요일 핵심 본문 2</span></div>
+    <h2><span class="en">Luke 15:11–32 — The Two Sons</span><span class="ko">누가복음 15:11–32 — 두 아들</span></h2>
+    <p><strong><span class="en">Focus:</span><span class="ko">초점:</span></strong> <span class="en">Grace, resentment, and the open-ended feast</span><span class="ko">은혜, 원망, 열린 결말의 잔치</span></p>
+  </div>
+
+  <div class="question-card">
+    <h3><span class="en">1. Exegetical Question</span><span class="ko">1. 주해 질문</span></h3>
+    <p><span class="en">How do the younger son, father, and elder son function in the narrative movement of the parable?</span><span class="ko">작은아들, 아버지, 큰아들은 이 비유의 이야기 흐름 속에서 각각 어떻게 기능합니까?</span></p>
+    <textarea id="exe2" placeholder="Stay inside the text: audience, setting, literary movement, reversal, and original force."></textarea>
+  </div>
+
+  <div class="question-card">
+    <h3><span class="en">2. Hermeneutical Question</span><span class="ko">2. 해석 질문</span></h3>
+    <p><span class="en">How does resentment toward grace still appear in religious, moral, or academic communities today?</span><span class="ko">은혜를 향한 원망은 오늘의 종교적, 도덕적, 학문적 공동체 안에서 어떻게 나타납니까?</span></p>
+    <textarea id="her2" placeholder="Bridge carefully to today without losing the original force."></textarea>
+  </div>
+
+  <div class="question-card">
+    <h3><span class="en">3. Integration Question</span><span class="ko">3. 통합 질문</span></h3>
+    <p><span class="en">Write one sentence connecting the father’s welcome and the elder son’s refusal with a contemporary call to enter the joy of grace.</span><span class="ko">아버지의 환대와 큰아들의 거부를 오늘 은혜의 기쁨에 들어가라는 부름과 연결하는 한 문장을 작성하십시오.</span></p>
+    <textarea id="int2" placeholder="Write one clear sentence connecting original meaning and contemporary response."></textarea>
+  </div>
+
+  <details class="guide">
+    <summary><span class="en">Instructor Model Integration Sentence</span><span class="ko">교수자용 통합 문장 예시</span></summary>
+    <p><span class="en">The parable exposes both visible rebellion and hidden resentment, inviting both sons—and today’s communities—into the father’s joy.</span><span class="ko">이 비유는 보이는 반역과 숨은 원망을 함께 드러내며, 두 아들과 오늘의 공동체 모두를 아버지의 기쁨 안으로 초대한다.</span></p>
+  </details>
+</section>
+
+<section id="text3" class="text-section">
+  <div class="text-header">
+    <div class="kicker"><span class="en">Tuesday Core Text 3</span><span class="ko">화요일 핵심 본문 3</span></div>
+    <h2><span class="en">Luke 18:9–14 — The Pharisee and the Tax Collector</span><span class="ko">누가복음 18:9–14 — 바리새인과 세리</span></h2>
+    <p><strong><span class="en">Focus:</span><span class="ko">초점:</span></strong> <span class="en">Prayer, status, comparison, and mercy</span><span class="ko">기도, 지위, 비교, 자비</span></p>
+  </div>
+
+  <div class="question-card">
+    <h3><span class="en">1. Exegetical Question</span><span class="ko">1. 주해 질문</span></h3>
+    <p><span class="en">How would the first audience likely evaluate the Pharisee and tax collector before Jesus’ reversal?</span><span class="ko">예수님의 전복이 일어나기 전, 원래 청중은 바리새인과 세리를 어떻게 평가했을 가능성이 큽니까?</span></p>
+    <textarea id="exe3" placeholder="Stay inside the text: audience, setting, literary movement, reversal, and original force."></textarea>
+  </div>
+
+  <div class="question-card">
+    <h3><span class="en">2. Hermeneutical Question</span><span class="ko">2. 해석 질문</span></h3>
+    <p><span class="en">How can prayer, worship, or religious practice become a performance of superiority rather than surrender before God?</span><span class="ko">기도, 예배, 종교적 실천은 어떻게 하나님 앞의 항복이 아니라 우월성의 공연이 될 수 있습니까?</span></p>
+    <textarea id="her3" placeholder="Bridge carefully to today without losing the original force."></textarea>
+  </div>
+
+  <div class="question-card">
+    <h3><span class="en">3. Integration Question</span><span class="ko">3. 통합 질문</span></h3>
+    <p><span class="en">Write one sentence connecting Jesus’ status reversal with a contemporary posture of humble dependence on mercy.</span><span class="ko">예수님의 지위 전복을 오늘 자비에 의존하는 겸손한 자세와 연결하는 한 문장을 작성하십시오.</span></p>
+    <textarea id="int3" placeholder="Write one clear sentence connecting original meaning and contemporary response."></textarea>
+  </div>
+
+  <details class="guide">
+    <summary><span class="en">Instructor Model Integration Sentence</span><span class="ko">교수자용 통합 문장 예시</span></summary>
+    <p><span class="en">Jesus reverses expected status: humble dependence receives mercy while religious comparison blocks transformation.</span><span class="ko">예수님은 기대된 지위를 뒤집으신다. 겸손한 의존은 자비를 받지만, 종교적 비교는 변화를 막는다.</span></p>
+  </details>
+</section>
+
+<section id="text4" class="text-section">
+  <div class="text-header">
+    <div class="kicker"><span class="en">Friday Core Text 1</span><span class="ko">금요일 핵심 본문 1</span></div>
+    <h2><span class="en">Matthew 20:1–16 — Workers in the Vineyard</span><span class="ko">마태복음 20:1–16 — 포도원 품꾼</span></h2>
+    <p><strong><span class="en">Focus:</span><span class="ko">초점:</span></strong> <span class="en">Grace, comparison, reward, and generosity</span><span class="ko">은혜, 비교, 보상, 관대함</span></p>
+  </div>
+
+  <div class="question-card">
+    <h3><span class="en">1. Exegetical Question</span><span class="ko">1. 주해 질문</span></h3>
+    <p><span class="en">How does the vineyard payment structure create tension between justice, grace, and comparison?</span><span class="ko">포도원 품삯 구조는 정의, 은혜, 비교 사이에 어떤 긴장을 만들어 냅니까?</span></p>
+    <textarea id="exe4" placeholder="Stay inside the text: audience, setting, literary movement, reversal, and original force."></textarea>
+  </div>
+
+  <div class="question-card">
+    <h3><span class="en">2. Hermeneutical Question</span><span class="ko">2. 해석 질문</span></h3>
+    <p><span class="en">Where do we resent generosity because we compare our service, sacrifice, or status with others?</span><span class="ko">우리는 어디에서 자신의 봉사, 희생, 지위를 다른 사람과 비교하기 때문에 관대함을 원망합니까?</span></p>
+    <textarea id="her4" placeholder="Bridge carefully to today without losing the original force."></textarea>
+  </div>
+
+  <div class="question-card">
+    <h3><span class="en">3. Integration Question</span><span class="ko">3. 통합 질문</span></h3>
+    <p><span class="en">Write one sentence connecting the landowner’s generosity with a contemporary critique of comparison.</span><span class="ko">포도원 주인의 관대함을 오늘의 비교 문화에 대한 비판과 연결하는 한 문장을 작성하십시오.</span></p>
+    <textarea id="int4" placeholder="Write one clear sentence connecting original meaning and contemporary response."></textarea>
+  </div>
+
+  <details class="guide">
+    <summary><span class="en">Instructor Model Integration Sentence</span><span class="ko">교수자용 통합 문장 예시</span></summary>
+    <p><span class="en">The parable confronts comparison by revealing divine generosity as gift, not wage calculation.</span><span class="ko">이 비유는 하나님의 관대함을 임금 계산이 아니라 선물로 드러내며 비교의 태도를 대면하게 한다.</span></p>
+  </details>
+</section>
+
+<section id="text5" class="text-section">
+  <div class="text-header">
+    <div class="kicker"><span class="en">Friday Core Text 2</span><span class="ko">금요일 핵심 본문 2</span></div>
+    <h2><span class="en">Luke 16:1–13 — The Shrewd Manager</span><span class="ko">누가복음 16:1–13 — 불의한 청지기</span></h2>
+    <p><strong><span class="en">Focus:</span><span class="ko">초점:</span></strong> <span class="en">Wealth, foresight, stewardship, and kingdom urgency</span><span class="ko">재물, 통찰, 청지기직, 하나님 나라의 긴급성</span></p>
+  </div>
+
+  <div class="question-card">
+    <h3><span class="en">1. Exegetical Question</span><span class="ko">1. 주해 질문</span></h3>
+    <p><span class="en">What cultural background about debt, stewardship, and shrewdness helps clarify the manager’s action?</span><span class="ko">빚, 청지기직, 지혜로움에 관한 어떤 문화적 배경이 청지기의 행동을 이해하도록 돕습니까?</span></p>
+    <textarea id="exe5" placeholder="Stay inside the text: audience, setting, literary movement, reversal, and original force."></textarea>
+  </div>
+
+  <div class="question-card">
+    <h3><span class="en">2. Hermeneutical Question</span><span class="ko">2. 해석 질문</span></h3>
+    <p><span class="en">How can material resources be used for faithful future-oriented relationships rather than self-protection?</span><span class="ko">물질적 자원은 자기보호가 아니라 미래를 향한 신실한 관계를 위해 어떻게 사용될 수 있습니까?</span></p>
+    <textarea id="her5" placeholder="Bridge carefully to today without losing the original force."></textarea>
+  </div>
+
+  <div class="question-card">
+    <h3><span class="en">3. Integration Question</span><span class="ko">3. 통합 질문</span></h3>
+    <p><span class="en">Write one sentence connecting Jesus’ shocking example of shrewdness with faithful use of possessions today.</span><span class="ko">예수님의 충격적인 지혜의 예를 오늘 소유의 신실한 사용과 연결하는 한 문장을 작성하십시오.</span></p>
+    <textarea id="int5" placeholder="Write one clear sentence connecting original meaning and contemporary response."></textarea>
+  </div>
+
+  <details class="guide">
+    <summary><span class="en">Instructor Model Integration Sentence</span><span class="ko">교수자용 통합 문장 예시</span></summary>
+    <p><span class="en">Jesus uses a shocking story to call disciples to wise, urgent, faithful use of wealth under God’s reign.</span><span class="ko">예수님은 충격적인 이야기를 통해 제자들이 하나님의 통치 아래서 재물을 지혜롭고 긴급하며 신실하게 사용하도록 부르신다.</span></p>
+  </details>
+</section>
+
+<section id="text6" class="text-section">
+  <div class="text-header">
+    <div class="kicker"><span class="en">Friday Core Text 3</span><span class="ko">금요일 핵심 본문 3</span></div>
+    <h2><span class="en">Matthew 25:1–13 — The Ten Virgins</span><span class="ko">마태복음 25:1–13 — 열 처녀</span></h2>
+    <p><strong><span class="en">Focus:</span><span class="ko">초점:</span></strong> <span class="en">Readiness, delay, and sustained faithfulness</span><span class="ko">준비, 지연, 지속되는 신실함</span></p>
+  </div>
+
+  <div class="question-card">
+    <h3><span class="en">1. Exegetical Question</span><span class="ko">1. 주해 질문</span></h3>
+    <p><span class="en">How do the wedding setting and delayed bridegroom shape the parable’s warning?</span><span class="ko">혼인 잔치 배경과 지연된 신랑은 이 비유의 경고를 어떻게 형성합니까?</span></p>
+    <textarea id="exe6" placeholder="Stay inside the text: audience, setting, literary movement, reversal, and original force."></textarea>
+  </div>
+
+  <div class="question-card">
+    <h3><span class="en">2. Hermeneutical Question</span><span class="ko">2. 해석 질문</span></h3>
+    <p><span class="en">What does faithful readiness look like when fulfillment is delayed and disciples grow tired?</span><span class="ko">성취가 지연되고 제자들이 지칠 때, 신실한 준비는 어떤 모습이어야 합니까?</span></p>
+    <textarea id="her6" placeholder="Bridge carefully to today without losing the original force."></textarea>
+  </div>
+
+  <div class="question-card">
+    <h3><span class="en">3. Integration Question</span><span class="ko">3. 통합 질문</span></h3>
+    <p><span class="en">Write one sentence connecting the parable’s warning about delay with contemporary practices of sustained watchfulness.</span><span class="ko">지연에 대한 비유의 경고를 오늘의 지속적인 깨어 있음의 실천과 연결하는 한 문장을 작성하십시오.</span></p>
+    <textarea id="int6" placeholder="Write one clear sentence connecting original meaning and contemporary response."></textarea>
+  </div>
+
+  <details class="guide">
+    <summary><span class="en">Instructor Model Integration Sentence</span><span class="ko">교수자용 통합 문장 예시</span></summary>
+    <p><span class="en">The parable calls for sustained readiness: kingdom hope must endure delay without losing watchfulness.</span><span class="ko">이 비유는 지속적인 준비를 요청한다. 하나님 나라의 소망은 지연 속에서도 깨어 있음을 잃지 않아야 한다.</span></p>
+  </details>
+</section>
+
+
+  <section class="panel submit-panel">
+    <h2><span class="en">Save or Submit</span><span class="ko">저장 또는 제출</span></h2>
+    <div class="controls">
+      <button onclick="saveLocal()"><span class="en">Save Locally</span><span class="ko">로컬 저장</span></button>
+      <button onclick="loadLocal()"><span class="en">Load Saved Work</span><span class="ko">저장 내용 불러오기</span></button>
+      <button onclick="downloadJSON()"><span class="en">Download JSON Backup</span><span class="ko">JSON 백업 다운로드</span></button>
+      <button onclick="submitAll()" class="active"><span class="en">Submit All 6 Texts</span><span class="ko">6개 본문 전체 제출</span></button>
+    </div>
+    <div id="status" class="status"></div>
+    <p class="small"><span class="en">To enable Google Sheets submission, replace <strong>GOOGLE_SCRIPT_URL</strong> in the HTML with your Apps Script Web App <strong>/exec</strong> URL.</span><span class="ko">Google Sheets 제출을 사용하려면 HTML 안의 <strong>GOOGLE_SCRIPT_URL</strong>을 Apps Script Web App <strong>/exec</strong> URL로 교체하십시오.</span></p>
+  </section>
+
+  <section class="panel">
+    <h2><span class="en">Simple Rubric</span><span class="ko">간단 루브릭</span></h2>
+    <table class="rubric-table">
+      <tr><th><span class="en">Criterion</span><span class="ko">기준</span></th><th><span class="en">Excellent</span><span class="ko">우수</span></th><th><span class="en">Needs Revision</span><span class="ko">수정 필요</span></th></tr>
+      <tr><td><span class="en">Exegetical Accuracy</span><span class="ko">주해 정확성</span></td><td><span class="en">Names audience, context, movement, and reversal.</span><span class="ko">청중, 문맥, 움직임, 전복을 제시함.</span></td><td><span class="en">Gives generic moral lesson without textual grounding.</span><span class="ko">본문 근거 없이 일반 도덕 교훈만 제시함.</span></td></tr>
+      <tr><td><span class="en">Hermeneutical Faithfulness</span><span class="ko">해석의 신실성</span></td><td><span class="en">Bridges carefully to today while preserving original force.</span><span class="ko">원래 힘을 보존하며 오늘로 신중하게 연결함.</span></td><td><span class="en">Applies loosely without respecting the text.</span><span class="ko">본문을 충분히 존중하지 않고 느슨하게 적용함.</span></td></tr>
+      <tr><td><span class="en">Integration</span><span class="ko">통합</span></td><td><span class="en">One clear sentence connecting original meaning and contemporary response.</span><span class="ko">본래 의미와 오늘의 응답을 연결하는 분명한 한 문장.</span></td><td><span class="en">Too vague, too long, or disconnected from the text.</span><span class="ko">너무 모호하거나 길거나 본문과 연결되지 않음.</span></td></tr>
+    </table>
+  </section>
+</main>
+</div>
+
+<script>
+const GOOGLE_SCRIPT_URL = "PASTE_YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_EXEC_URL_HERE";
+const TEXTS = [{"day_en": "Tuesday", "day_ko": "화요일", "ref": "Luke 10:25–37", "ref_ko": "누가복음 10:25–37", "title_en": "The Good Samaritan", "title_ko": "선한 사마리아인", "focus_en": "Neighbor-love and boundary reversal", "focus_ko": "이웃 사랑과 경계의 전복", "exeQ_en": "What original question, audience, and social boundary does Jesus confront in this parable?", "exeQ_ko": "예수님은 이 비유에서 어떤 원래 질문, 청중, 사회적 경계를 대면하게 하십니까?", "herQ_en": "Where do modern communities still define “neighbor” narrowly, and who functions as the avoided outsider?", "herQ_ko": "오늘의 공동체는 어디에서 여전히 ‘이웃’을 좁게 정의하며, 누가 피하고 싶은 외부자처럼 기능합니까?", "intQ_en": "Write one sentence connecting Jesus’ original confrontation of boundary-making with a faithful contemporary practice of costly compassion.", "intQ_ko": "예수님이 경계 짓기를 대면하신 원래 의미와 오늘의 비용 있는 긍휼 실천을 연결하는 한 문장을 작성하십시오.", "model_en": "Jesus confronts the lawyer’s attempt to limit neighbor-love by making a despised outsider the model of mercy, calling communities today to cross boundaries with costly compassion.", "model_ko": "예수님은 이웃 사랑의 범위를 제한하려는 율법교사의 시도를 멸시받던 외부자를 자비의 모델로 삼아 뒤집으시며, 오늘의 공동체가 비용 있는 긍휼로 경계를 넘도록 부르신다."}, {"day_en": "Tuesday", "day_ko": "화요일", "ref": "Luke 15:11–32", "ref_ko": "누가복음 15:11–32", "title_en": "The Two Sons", "title_ko": "두 아들", "focus_en": "Grace, resentment, and the open-ended feast", "focus_ko": "은혜, 원망, 열린 결말의 잔치", "exeQ_en": "How do the younger son, father, and elder son function in the narrative movement of the parable?", "exeQ_ko": "작은아들, 아버지, 큰아들은 이 비유의 이야기 흐름 속에서 각각 어떻게 기능합니까?", "herQ_en": "How does resentment toward grace still appear in religious, moral, or academic communities today?", "herQ_ko": "은혜를 향한 원망은 오늘의 종교적, 도덕적, 학문적 공동체 안에서 어떻게 나타납니까?", "intQ_en": "Write one sentence connecting the father’s welcome and the elder son’s refusal with a contemporary call to enter the joy of grace.", "intQ_ko": "아버지의 환대와 큰아들의 거부를 오늘 은혜의 기쁨에 들어가라는 부름과 연결하는 한 문장을 작성하십시오.", "model_en": "The parable exposes both visible rebellion and hidden resentment, inviting both sons—and today’s communities—into the father’s joy.", "model_ko": "이 비유는 보이는 반역과 숨은 원망을 함께 드러내며, 두 아들과 오늘의 공동체 모두를 아버지의 기쁨 안으로 초대한다."}, {"day_en": "Tuesday", "day_ko": "화요일", "ref": "Luke 18:9–14", "ref_ko": "누가복음 18:9–14", "title_en": "The Pharisee and the Tax Collector", "title_ko": "바리새인과 세리", "focus_en": "Prayer, status, comparison, and mercy", "focus_ko": "기도, 지위, 비교, 자비", "exeQ_en": "How would the first audience likely evaluate the Pharisee and tax collector before Jesus’ reversal?", "exeQ_ko": "예수님의 전복이 일어나기 전, 원래 청중은 바리새인과 세리를 어떻게 평가했을 가능성이 큽니까?", "herQ_en": "How can prayer, worship, or religious practice become a performance of superiority rather than surrender before God?", "herQ_ko": "기도, 예배, 종교적 실천은 어떻게 하나님 앞의 항복이 아니라 우월성의 공연이 될 수 있습니까?", "intQ_en": "Write one sentence connecting Jesus’ status reversal with a contemporary posture of humble dependence on mercy.", "intQ_ko": "예수님의 지위 전복을 오늘 자비에 의존하는 겸손한 자세와 연결하는 한 문장을 작성하십시오.", "model_en": "Jesus reverses expected status: humble dependence receives mercy while religious comparison blocks transformation.", "model_ko": "예수님은 기대된 지위를 뒤집으신다. 겸손한 의존은 자비를 받지만, 종교적 비교는 변화를 막는다."}, {"day_en": "Friday", "day_ko": "금요일", "ref": "Matthew 20:1–16", "ref_ko": "마태복음 20:1–16", "title_en": "Workers in the Vineyard", "title_ko": "포도원 품꾼", "focus_en": "Grace, comparison, reward, and generosity", "focus_ko": "은혜, 비교, 보상, 관대함", "exeQ_en": "How does the vineyard payment structure create tension between justice, grace, and comparison?", "exeQ_ko": "포도원 품삯 구조는 정의, 은혜, 비교 사이에 어떤 긴장을 만들어 냅니까?", "herQ_en": "Where do we resent generosity because we compare our service, sacrifice, or status with others?", "herQ_ko": "우리는 어디에서 자신의 봉사, 희생, 지위를 다른 사람과 비교하기 때문에 관대함을 원망합니까?", "intQ_en": "Write one sentence connecting the landowner’s generosity with a contemporary critique of comparison.", "intQ_ko": "포도원 주인의 관대함을 오늘의 비교 문화에 대한 비판과 연결하는 한 문장을 작성하십시오.", "model_en": "The parable confronts comparison by revealing divine generosity as gift, not wage calculation.", "model_ko": "이 비유는 하나님의 관대함을 임금 계산이 아니라 선물로 드러내며 비교의 태도를 대면하게 한다."}, {"day_en": "Friday", "day_ko": "금요일", "ref": "Luke 16:1–13", "ref_ko": "누가복음 16:1–13", "title_en": "The Shrewd Manager", "title_ko": "불의한 청지기", "focus_en": "Wealth, foresight, stewardship, and kingdom urgency", "focus_ko": "재물, 통찰, 청지기직, 하나님 나라의 긴급성", "exeQ_en": "What cultural background about debt, stewardship, and shrewdness helps clarify the manager’s action?", "exeQ_ko": "빚, 청지기직, 지혜로움에 관한 어떤 문화적 배경이 청지기의 행동을 이해하도록 돕습니까?", "herQ_en": "How can material resources be used for faithful future-oriented relationships rather than self-protection?", "herQ_ko": "물질적 자원은 자기보호가 아니라 미래를 향한 신실한 관계를 위해 어떻게 사용될 수 있습니까?", "intQ_en": "Write one sentence connecting Jesus’ shocking example of shrewdness with faithful use of possessions today.", "intQ_ko": "예수님의 충격적인 지혜의 예를 오늘 소유의 신실한 사용과 연결하는 한 문장을 작성하십시오.", "model_en": "Jesus uses a shocking story to call disciples to wise, urgent, faithful use of wealth under God’s reign.", "model_ko": "예수님은 충격적인 이야기를 통해 제자들이 하나님의 통치 아래서 재물을 지혜롭고 긴급하며 신실하게 사용하도록 부르신다."}, {"day_en": "Friday", "day_ko": "금요일", "ref": "Matthew 25:1–13", "ref_ko": "마태복음 25:1–13", "title_en": "The Ten Virgins", "title_ko": "열 처녀", "focus_en": "Readiness, delay, and sustained faithfulness", "focus_ko": "준비, 지연, 지속되는 신실함", "exeQ_en": "How do the wedding setting and delayed bridegroom shape the parable’s warning?", "exeQ_ko": "혼인 잔치 배경과 지연된 신랑은 이 비유의 경고를 어떻게 형성합니까?", "herQ_en": "What does faithful readiness look like when fulfillment is delayed and disciples grow tired?", "herQ_ko": "성취가 지연되고 제자들이 지칠 때, 신실한 준비는 어떤 모습이어야 합니까?", "intQ_en": "Write one sentence connecting the parable’s warning about delay with contemporary practices of sustained watchfulness.", "intQ_ko": "지연에 대한 비유의 경고를 오늘의 지속적인 깨어 있음의 실천과 연결하는 한 문장을 작성하십시오.", "model_en": "The parable calls for sustained readiness: kingdom hope must endure delay without losing watchfulness.", "model_ko": "이 비유는 지속적인 준비를 요청한다. 하나님 나라의 소망은 지연 속에서도 깨어 있음을 잃지 않아야 한다."}];
+let current = 0;
+
+function showText(n){
+  document.querySelectorAll('.text-section').forEach(s => s.classList.remove('current'));
+  document.getElementById('text'+n).classList.add('current');
+  current = n;
+  document.querySelectorAll('.text-btn').forEach((b,i)=>b.classList.toggle('active', i===n));
+  document.getElementById('bar').style.width = ((n+1) / (TEXTS.length+1) * 100) + '%';
+  localStorage.setItem('activeParablesV2Text', n);
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+function nextText(){ showText(Math.min(TEXTS.length, current+1)); }
+function prevText(){ showText(Math.max(0, current-1)); }
+function toggleLang(){
+  document.body.classList.toggle('lang-ko');
+  localStorage.setItem('activeParablesV2LangKo', document.body.classList.contains('lang-ko') ? '1' : '0');
+}
+function val(id){ return document.getElementById(id).value.trim(); }
+
+function collectRows(){
+  const common = {
+    timestamp: new Date().toISOString(),
+    studentClass: val('studentClass'),
+    studentId: val('studentId'),
+    studentName: val('studentName'),
+    groupName: val('groupName'),
+    members: val('members')
+  };
+  if(!common.studentClass || !common.studentId || !common.studentName || !common.groupName){
+    throw new Error(document.body.classList.contains('lang-ko') ? '수업, 학번, 이름, 그룹 이름을 입력하십시오.' : 'Please fill Student Class, Student ID, Student Name, and Group Name.');
+  }
+  return TEXTS.map((t,i)=>({
+    ...common,
+    day: t.day_en,
+    dayKo: t.day_ko,
+    coreText: t.ref + ' — ' + t.title_en,
+    coreTextKo: t.ref_ko + ' — ' + t.title_ko,
+    focus: t.focus_en,
+    focusKo: t.focus_ko,
+    exeQuestion: t.exeQ_en,
+    exeQuestionKo: t.exeQ_ko,
+    herQuestion: t.herQ_en,
+    herQuestionKo: t.herQ_ko,
+    integrationQuestion: t.intQ_en,
+    integrationQuestionKo: t.intQ_ko,
+    exeAnswer: val('exe'+(i+1)),
+    herAnswer: val('her'+(i+1)),
+    integrationAnswer: val('int'+(i+1))
+  }));
+}
+
+function showStatus(msg,type='ok'){
+  const s = document.getElementById('status');
+  s.className = 'status ' + type;
+  s.textContent = msg;
+}
+
+function saveLocal(){
+  try {
+    localStorage.setItem('activeParablesV2Rows', JSON.stringify(collectRows()));
+    showStatus(document.body.classList.contains('lang-ko') ? '이 브라우저에 저장되었습니다.' : 'Saved locally in this browser.');
+  } catch(e) { showStatus(e.message, 'bad'); }
+}
+
+function loadLocal(){
+  const rows = JSON.parse(localStorage.getItem('activeParablesV2Rows') || '[]');
+  if(!rows.length) return showStatus(document.body.classList.contains('lang-ko') ? '저장된 내용이 없습니다.' : 'No saved work found.', 'bad');
+  const c = rows[0];
+  ['studentClass','studentId','studentName','groupName','members'].forEach(k => document.getElementById(k).value = c[k] || '');
+  rows.forEach((r,i)=>{
+    document.getElementById('exe'+(i+1)).value = r.exeAnswer || '';
+    document.getElementById('her'+(i+1)).value = r.herAnswer || '';
+    document.getElementById('int'+(i+1)).value = r.integrationAnswer || '';
+  });
+  showStatus(document.body.classList.contains('lang-ko') ? '저장된 내용을 불러왔습니다.' : 'Loaded saved work.');
+}
+
+function downloadJSON(){
+  try {
+    const rows = collectRows();
+    const blob = new Blob([JSON.stringify({type:'active_parables_v2_batch', rows}, null, 2)], {type:'application/json'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'active_parables_v2_submission_backup.json';
+    a.click();
+    URL.revokeObjectURL(a.href);
+    showStatus(document.body.classList.contains('lang-ko') ? 'JSON 백업을 다운로드했습니다.' : 'Downloaded JSON backup.');
+  } catch(e) { showStatus(e.message, 'bad'); }
+}
+
+async function submitAll(){
+  let rows;
+  try { rows = collectRows(); } catch(e) { return showStatus(e.message, 'bad'); }
+  if(GOOGLE_SCRIPT_URL.includes('PASTE_YOUR')) {
+    return showStatus(document.body.classList.contains('lang-ko') ? '제출되지 않았습니다: GOOGLE_SCRIPT_URL을 Apps Script /exec URL로 먼저 교체하십시오.' : 'Submission not sent: replace GOOGLE_SCRIPT_URL with your Apps Script /exec URL first.', 'bad');
+  }
+  try {
+    await fetch(GOOGLE_SCRIPT_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({type:'active_parables_v2_batch', rows})
+    });
+    localStorage.setItem('activeParablesV2Rows', JSON.stringify(rows));
+    showStatus(document.body.classList.contains('lang-ko') ? '제출되었습니다. Google Sheet에서 행이 나타났는지 확인하십시오.' : 'Submitted. Because Apps Script uses no-cors, check your Google Sheet to confirm rows appeared.');
+  } catch(e) {
+    showStatus((document.body.classList.contains('lang-ko') ? '제출 실패: ' : 'Submission failed: ') + e.message, 'bad');
+  }
+}
+
+if(localStorage.getItem('activeParablesV2LangKo') === '1') document.body.classList.add('lang-ko');
+showText(Number(localStorage.getItem('activeParablesV2Text') || 0));
+</script>
+</body>
+</html>
